@@ -10,14 +10,19 @@ import data_helpers
 # ==================================================
 
 # Data loading params
-tf.flags.DEFINE_string("pos_dir", "data/rt-polaritydata/rt-polarity.pos", "Path of positive data")
-tf.flags.DEFINE_string("neg_dir", "data/rt-polaritydata/rt-polarity.neg", "Path of negative data")
+tf.flags.DEFINE_string("anger_dir", "data/rt-polaritydata/rt-polarity.ang", "Path of anger data")
+tf.flags.DEFINE_string("disgust_dir", "data/rt-polaritydata/rt-polarity.disg", "Path of disgust data")
+tf.flags.DEFINE_string("fear_dir", "data/rt-polaritydata/rt-polarity.fear", "Path of fear data")
+tf.flags.DEFINE_string("neutral_dir", "data/rt-polaritydata/rt-polarity.neut", "Path of neutral data")
+tf.flags.DEFINE_string("sadness_dir", "data/rt-polaritydata/rt-polarity.sad", "Path of sadness data")
+tf.flags.DEFINE_string("surprise_dir", "data/rt-polaritydata/rt-polarity.surp", "Path of surprise data")
 tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
 tf.flags.DEFINE_integer("max_sentence_length", 100, "Max sentence length in train/test data (Default: 100)")
 
 # Model Hyperparameters
 tf.flags.DEFINE_string("cell_type", "vanilla", "Type of rnn cell. Choose 'vanilla' or 'lstm' or 'gru' (Default: vanilla)")
 tf.flags.DEFINE_string("word2vec", None, "Word2vec file with pre-trained embeddings")
+tf.flags.DEFINE_string("glove", None, "Glove file with pre-trained embeddings")
 tf.flags.DEFINE_integer("embedding_dim", 128, "Dimensionality of character embedding (Default: 300)")
 tf.flags.DEFINE_integer("hidden_size", 128, "Dimensionality of character embedding (Default: 128)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.8, "Dropout keep probability (Default: 0.5)")
@@ -38,18 +43,18 @@ tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on 
 
 
 FLAGS = tf.flags.FLAGS
-FLAGS._parse_flags()
-print("\nParameters:")
-for attr, value in sorted(FLAGS.__flags.items()):
-    print("{} = {}".format(attr.upper(), value))
-print("")
+#FLAGS._parse_flags()
+#print("\nParameters:")
+#for attr, value in sorted(FLAGS.__flags.items()):
+#    print("{} = {}".format(attr.upper(), value))
+#print("")
 
 
 def train():
     with tf.device('/cpu:0'):
-        x_text, y = data_helpers.load_data_and_labels(FLAGS.pos_dir, FLAGS.neg_dir)
-
-    text_vocab_processor = tf.contrib.learn.preprocessing.VocabularyProcessor(FLAGS.max_sentence_length)
+        x_text, y = data_helpers.load_data_and_labels(FLAGS.anger_dir, FLAGS.disgust_dir, FLAGS.fear_dir, FLAGS.neutral_dir, FLAGS.sadness_dir, FLAGS.surprise_dir)
+    max_document_length = max([len(x.split(" ")) for x in x_text])
+    text_vocab_processor = tf.contrib.learn.preprocessing.VocabularyProcessor(max_document_length)
     x = np.array(list(text_vocab_processor.fit_transform(x_text)))
     print("Text Vocabulary Size: {:d}".format(len(text_vocab_processor.vocabulary_)))
 
@@ -89,6 +94,7 @@ def train():
             # Define Training procedure
             global_step = tf.Variable(0, name="global_step", trainable=True)
             train_op = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(rnn.loss, global_step=global_step)
+            #train_op = tf.train.AdamOptimizer(rnn.learning_rate).minimize(rnn.loss, global_step=global_step)
 
             # Output directory for models and summaries
             timestamp = str(int(time.time()))
@@ -148,6 +154,19 @@ def train():
                             f.read(binary_len)
                 sess.run(rnn.W_text.assign(initW))
                 print("Success to load pre-trained word2vec model!\n")
+
+            if FLAGS.glove:
+                embedding_vectors = np.random.uniform(-0.25, 0.25, (len(text_vocab_processor.vocabulary_), FLAGS.embedding_dim))
+                f = open(FLAGS.glove, "rb")
+                for line in f:
+                    values = line.split()
+                    word = values[0]
+                    vector = np.asarray(values[1:], dtype="float32")
+                    idx = text_vocab_processor.vocabulary_.get(word)
+                    if idx != 0:
+                        embedding_vectors[idx] = vector
+                f.close()
+                sess.run(rnn.W_text.assign(embedding_vectors))
 
             # Generate batches
             batches = data_helpers.batch_iter(

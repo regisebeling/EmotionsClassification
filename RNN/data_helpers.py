@@ -23,23 +23,36 @@ def clean_str(string):
     return string.strip().lower()
 
 
-def load_data_and_labels(positive_data_file, negative_data_file):
+def load_data_and_labels(anger_data_file, disgust_data_file, fear_data_file, neutral_data_file, sadness_data_file, surprise_data_file):
     """
     Loads MR polarity data from files, splits the data into words and generates labels.
     Returns split sentences and labels.
     """
     # Load data from files
-    positive_examples = list(open(positive_data_file, "r", encoding="UTF8").readlines())
-    positive_examples = [s.strip() for s in positive_examples]
-    negative_examples = list(open(negative_data_file, "r", encoding="UTF8").readlines())
-    negative_examples = [s.strip() for s in negative_examples]
+    anger_examples = list(open(anger_data_file, "r", encoding="UTF8").readlines())
+    anger_examples = [s.strip() for s in anger_examples]
+    sadness_examples = list(open(sadness_data_file, "r", encoding="UTF8").readlines())
+    sadness_examples = [s.strip() for s in sadness_examples]
+    surprise_examples = list(open(surprise_data_file, "r", encoding="UTF8").readlines())
+    surprise_examples = [s.strip() for s in surprise_examples]
+    fear_examples = list(open(fear_data_file, "r", encoding="UTF8").readlines())
+    fear_examples = [s.strip() for s in fear_examples]
+    disgust_examples = list(open(disgust_data_file, "r", encoding="UTF8").readlines())
+    disgust_examples = [s.strip() for s in disgust_examples]
+    neutral_examples = list(open(neutral_data_file, "r", encoding="UTF8").readlines())
+    neutral_examples = [s.strip() for s in neutral_examples]
+
     # Split by words
-    x_text = positive_examples + negative_examples
+    x_text = anger_examples + disgust_examples + fear_examples + neutral_examples + sadness_examples + surprise_examples
     x_text = [clean_str(sent) for sent in x_text]
     # Generate labels
-    positive_labels = [[0, 1] for _ in positive_examples]
-    negative_labels = [[1, 0] for _ in negative_examples]
-    y = np.concatenate([positive_labels, negative_labels], 0)
+    anger_labels = [[0, 0, 0, 0, 0, 1] for _ in anger_examples]
+    disgust_labels = [[0, 0, 0, 0, 1, 0] for _ in disgust_examples]
+    fear_labels = [[0, 0, 0, 1, 0, 0] for _ in fear_examples]
+    neutral_labels = [[0, 0, 1, 0, 0, 0] for _ in neutral_examples]
+    sadness_labels = [[0, 1, 0, 0, 0, 0] for _ in sadness_examples]
+    surprise_labels = [[1, 0, 0, 0, 0, 0] for _ in surprise_examples]
+    y = np.concatenate([anger_labels, disgust_labels, fear_labels, neutral_labels, sadness_labels, surprise_labels], 0)
     return [x_text, y]
 
 

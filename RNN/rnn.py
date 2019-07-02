@@ -21,11 +21,8 @@ class RNN:
         # Recurrent Neural Network
         with tf.name_scope("rnn"):
             cell = self._get_cell(hidden_size, cell_type)
-			
-			cells = tf.nn.rnn_cell.MultiRNNCell([cell] * self.num_layers, state_is_tuple=True)
-			
+            cells = tf.nn.rnn_cell.MultiRNNCell([cell] * self.num_layers, state_is_tuple=True)
             cell = tf.nn.rnn_cell.DropoutWrapper(cells, output_keep_prob=self.dropout_keep_prob)
-			
             all_outputs, _ = tf.nn.dynamic_rnn(cell=cell,
                                                inputs=self.embedded_chars,
                                                sequence_length=text_length,
@@ -71,16 +68,6 @@ class RNN:
         length = tf.cast(length, tf.int32)
         return length
 
-    # Extract the output of last cell of each sequence
-    # Ex) The movie is good -> length = 4
-    #     output = [ [1.314, -3.32, ..., 0.98]
-    #                [0.287, -0.50, ..., 1.55]
-    #                [2.194, -2.12, ..., 0.63]
-    #                [1.938, -1.88, ..., 1.31]
-    #                [  0.0,   0.0, ...,  0.0]
-    #                ...
-    #                [  0.0,   0.0, ...,  0.0] ]
-    #     The output we need is 4th output of cell, so extract it.
     @staticmethod
     def last_relevant(seq, length):
         batch_size = tf.shape(seq)[0]
